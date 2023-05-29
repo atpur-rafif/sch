@@ -1,55 +1,67 @@
-type NegateProp<T, U> = {
+type OmitProp<T, U extends keyof T> = {
     [K in keyof T as (K extends U ? never : K)]: T[K]
 }
+
+type GetUnion<T, U> = T extends U ? T : never;
 
 type ChangePropName<O, F extends string, T extends string> = {
     [K in keyof O as (K extends F ? T : K)]: O[K]
 }
 
-type BaseConfig<M = any> = {
-    from: "Any",
-    to: any
+type ExtractParam<T extends { type: any }> = {
+    [K in keyof OmitProp<T, "type">]: T[K]
+}
+
+type CompressParam<T> = T extends { _param: Record<string, any> } ? ({
+    [K in keyof T["_param"]]: T["_param"][K]
+} & {
+    [K in keyof OmitProp<T, "_param">]: T[K]
+}) : T
+
+type GetParam<T extends BaseConfig["_from"], P> = GetUnion<BaseConfig, { _from: T }> extends { _param: infer R } ? (P extends R ? P : never) : never
+
+type BaseConfig<P = any> = {
+    _from: "Any",
+    _to: any
 } | {
-    from: "Boolean"
-    to: boolean
+    _from: "Boolean"
+    _to: boolean
 } | {
-    from: "Number"
-    to: number
+    _from: "Number"
+    _to: number
 } | {
-    from: "String"
-    to: string
+    _from: "String"
+    _to: string
 } | {
-    from: "Array"
-    member: ToSchema<BaseConfig>
-    to: M extends _Schema ? _Type<M>[] : never
-} | {
+    _from: "Array"
+    _param: {
+        element: _Schema,
+        min?: number,
+        max?: number
+    },
+    _to: _Type<GetParam<"Array", P>["element"]>[]
+} 
+
+/*
+| {
     from: "Object"
     member: Record<string | number, ToSchema<BaseConfig>>
     to: M extends Record<string | number, _Schema> ? { -readonly [K in keyof M]: M[K] extends _Schema ? _Type<M[K]> : never } : never
 }
+*/
 
-type ToSchema<T extends BaseConfig> = ChangePropName<NegateProp<T, "to">, "from", "type">
-type _Schema = ToSchema<BaseConfig>
-
+type _Schema<T extends BaseConfig = BaseConfig> = CompressParam<ChangePropName<OmitProp<T, "_to">, "_from", "type">>
 type _Type<T extends _Schema> = 
-    T extends { type: infer R, member: infer M} ? Extract<BaseConfig<M>, { from: R }>["to"] :
-    T extends { type: infer R } ? Extract<BaseConfig, { from: R }>["to"] :
+    T extends { type: infer R } ? GetUnion<BaseConfig<ExtractParam<T>>, { _from: R }>["_to"] :
     never
 
 const test = {
-    type: "Object",
-    member: {
-        a: {
-            type: "Object",
-            member: {
-                a: {
-                    type: "Array",
-                    member: { type: "String" }
-                },
-                b: { type: "String" }
-            }
-        },
-        b: { type: "Number" }
+    type: "Array",
+    element: {
+        type: "Array",
+        element: {
+            type: "Number"
+        }
     }
 } as const satisfies _Schema
 
