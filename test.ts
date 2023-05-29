@@ -22,6 +22,12 @@ namespace Schema{
         _from: "Any"
         _to: any
     } | {
+        _from: "Strict"
+        _to: GetParam<"Strict", P>["value"]
+        _params: {
+            value: any
+        }
+    } | {
         _from: "Boolean"
         _to: boolean
     } | {
@@ -83,6 +89,10 @@ const a = {
                         { type: "String" },
                         { type: "Number" }
                     ]
+                },
+                {
+                    type: "Strict",
+                    value: [1,2,3]
                 }
             ]
         }
