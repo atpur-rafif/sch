@@ -21,24 +21,35 @@ type BaseConfig<M = any> = {
 } | {
     from: "Array"
     member: ToSchema<BaseConfig>
-    to: M[]
+    to: M extends _Schema ? _Type<M>[] : never
+} | {
+    from: "Object"
+    member: Record<string | number, ToSchema<BaseConfig>>
+    to: M extends Record<string | number, _Schema> ? { -readonly [K in keyof M]: M[K] extends _Schema ? _Type<M[K]> : never } : never
 }
 
 type ToSchema<T extends BaseConfig> = ChangePropName<NegateProp<T, "to">, "from", "type">
 type _Schema = ToSchema<BaseConfig>
 
 type _Type<T extends _Schema> = 
-    T extends { type: infer R, member: infer M extends _Schema} ? Extract<BaseConfig<_Type<M>>, { from: R }>["to"] :
+    T extends { type: infer R, member: infer M} ? Extract<BaseConfig<M>, { from: R }>["to"] :
     T extends { type: infer R } ? Extract<BaseConfig, { from: R }>["to"] :
     never
 
 const test = {
-    type: "Array",
+    type: "Object",
     member: {
-        type: "Array",
-        member: {
-            type: "String"
-        }
+        a: {
+            type: "Object",
+            member: {
+                a: {
+                    type: "Array",
+                    member: { type: "String" }
+                },
+                b: { type: "String" }
+            }
+        },
+        b: { type: "Number" }
     }
 } as const satisfies _Schema
 
