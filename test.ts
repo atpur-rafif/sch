@@ -54,6 +54,12 @@ namespace Schema{
         _params: {
             element: readonly Schema[]
         }
+    } | {
+        _from: "Union"
+        _to: UnwrapTuple<GetParam<"Union", P>["member"]>[number]
+        _params: {
+            member: readonly Schema[]
+        }
     }
 
     // Create schema from config
@@ -71,7 +77,13 @@ const a = {
             type: "Tuple",
             element: [
                 { type: "Number" },
-                { type: "Number" }
+                {
+                    type: "Union",
+                    member: [
+                        { type: "String" },
+                        { type: "Number" }
+                    ]
+                }
             ]
         }
     ]
