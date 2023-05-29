@@ -14,6 +14,10 @@ namespace Schema{
     type GetParamType<T extends Config["_from"]> = GetUnion<Config, { _from: T }> extends { _params: infer R } ? R : never 
     type GetParam<T extends Config["_from"], P> = P extends GetParamType<T> ? P : never
 
+    type UnwrapTuple<T extends ReadonlyArray<Schema>> = {
+        -readonly [K in keyof T]: Type<T[K]> extends infer K ? K : never
+    }
+
     export type Config<P = any> = {
         _from: "Any"
         _to: any
@@ -44,6 +48,12 @@ namespace Schema{
             properties: Record<string | number, Schema>
             optionalProperties?: Record<string | number, Schema>
         }
+    } | {
+        _from: "Tuple"
+        _to: UnwrapTuple<GetParam<"Tuple", P>["element"]>
+        _params: {
+            element: readonly Schema[]
+        }
     }
 
     // Create schema from config
@@ -54,17 +64,17 @@ namespace Schema{
 }
 
 const a = {
-    type: "Array",
-    element: {
-        type: "Object",
-        properties: {
-            a: { type: "String" },
-            b: { type: "Number" }
-        },
-        optionalProperties: {
-            a: { type: "String" }
+    type: "Tuple",
+    element: [
+        { type: "String" },
+        {
+            type: "Tuple",
+            element: [
+                { type: "Number" },
+                { type: "Number" }
+            ]
         }
-    }
+    ]
 } as const satisfies Schema.Schema
 
 type ta = Schema.Type<typeof a>
